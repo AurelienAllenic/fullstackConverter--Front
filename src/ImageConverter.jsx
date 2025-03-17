@@ -1,142 +1,138 @@
 import React, { useState } from "react";
-import background from "./assets/back-converter.jpg";
-import "./imageConverter.scss"
+import "./imageConverter.scss";
+import { IoCloseSharp } from "react-icons/io5";
 
 const ImageConverter = () => {
   const [selectedFiles, setSelectedFiles] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
   const [format, setFormat] = useState("webp");
   const [convertedFiles, setConvertedFiles] = useState([]);
-  const [isFolder, setIsFolder] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleFileChange = (event) => {
     setSelectedFiles(event.target.files);
-    setIsFolder(false); // Sélection de fichiers, pas un dossier
-  };
-
-  const handleFolderChange = (event) => {
-    setSelectedFiles(event.target.files);
-    setIsFolder(true); // Sélection d’un dossier
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!selectedFiles || selectedFiles.length === 0) return alert("Sélectionne au moins un fichier.");
+    setErrorMessage("");
 
-    const formData = new FormData();
-    for (const file of selectedFiles) {
-      formData.append("images", file);
+    if (!selectedFiles || selectedFiles.length === 0) {
+      setErrorMessage("Sélectionne au moins un fichier.");
+      return;
     }
-    formData.append("format", format);
 
-    const response = await fetch("http://localhost:5000/convert", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const formData = new FormData();
+      for (const file of selectedFiles) {
+        formData.append("images", file);
+      }
+      formData.append("format", format);
 
-    const data = await response.json();
-    if (data.files) {
-      const correctedFiles = data.files.map(file => file.replace(/\\/g, "/"));
-      setConvertedFiles(correctedFiles);
+      const response = await fetch("http://localhost:5000/convert", { method: "POST", body: formData });
+
+      if (!response.ok) throw new Error("Erreur lors de la conversion.");
+
+      const data = await response.json();
+      setConvertedFiles(data.files || []);
+    } catch (error) {
+      setErrorMessage(error.message);
     }
   };
 
   const handleConvertUrl = async () => {
-    if (!imageUrl) return alert("Entrez une URL d'image.");
-    
-    const response = await fetch("http://localhost:5000/convert-url", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imageUrl, format }),
-    });
+    setErrorMessage("");
+    if (!imageUrl) return setErrorMessage("Entrez une URL d'image.");
 
-    const data = await response.json();
-    if (data.file) {
-      setConvertedFiles([data.file]); // Ajoute uniquement le fichier converti
+    try {
+      const response = await fetch("http://localhost:5000/convert-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl, format }),
+      });
+
+      if (!response.ok) throw new Error("Échec de la conversion depuis l'URL.");
+
+      const data = await response.json();
+      setConvertedFiles([data.file]);
+    } catch (error) {
+      setErrorMessage(error.message);
     }
   };
 
-  const handleDownload = (fileUrl, fileName) => {
-    fetch(fileUrl)
-      .then(response => response.blob())
-      .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      })
-      .catch(error => console.error("Erreur lors du téléchargement :", error));
-  };
-
-  const handleDownloadZip = () => {
-    const zipUrl = "http://localhost:5000/download-zip";
-    const a = document.createElement("a");
-    a.href = zipUrl;
-    a.download = "converted_images.zip";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
   return (
-    <div style={{ backgroundImage: `url(${background})` }} className="container-converter">
+    <div className="container-converter">
       <h2>Convertisseur d'images</h2>
+      {errorMessage && <p className="error-message">{errorMessage}</p>}
+        <div className="container-form-download">
+        {convertedFiles.length === 0 &&
+            <form onSubmit={handleSubmit}>
+                <div className="input-group">
+                <label className="custom-file-upload">
+                    📂 Sélectionner des fichiers
+                    <input type="file" multiple onChange={handleFileChange} />
+                </label>
 
-      <form onSubmit={handleSubmit}>
-        <div>
-        <h3>Sélectionner des fichiers</h3>
-        <label htmlFor="file-upload" className="custom-file-upload">
-          📂 Choisir des fichiers
-        </label>
-        <input id="file-upload" type="file" multiple onChange={handleFileChange} style={{ display: "none" }} />
+                <label className="custom-file-upload">
+                    📁 Sélectionner un dossier
+                    <input type="file" multiple webkitdirectory="" directory="" onChange={handleFileChange} />
+                </label>
+                </div>
 
-        <h3>Ou sélectionner un dossier</h3>
-        <label htmlFor="folder-upload" className="custom-file-upload">
-          📁 Choisir un dossier
-        </label>
-        <input id="folder-upload" type="file" multiple webkitdirectory="" directory="" onChange={handleFolderChange} style={{ display: "none" }} />
+                <div className="url-input">
+                <textarea type="text" placeholder="Entrer une URL d'image" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+                <button type="button" onClick={handleConvertUrl}>🔄 Convertir depuis une URL</button>
+                </div>
 
-        <h3>Ou entrer l’URL d’une image</h3>
-        <textarea
-          type="text"
-          placeholder="Entrer une URL d'image"
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
-        />
-        <button type="button" onClick={handleConvertUrl}>Convertir depuis une URL</button>
+                <div className="format-select">
+                <label>🎨 Choisir le format :</label>
+                <select value={format} onChange={(e) => setFormat(e.target.value)}>
+                    <option value="webp">WEBP</option>
+                    <option value="jpg">JPG</option>
+                    <option value="png">PNG</option>
+                    <option value="gif">GIF</option>
+                </select>
+                </div>
 
-        <h3>Choisir le format de conversion</h3>
-        <select value={format} onChange={(e) => setFormat(e.target.value)}>
-          <option value="webp">WEBP</option>
-          <option value="jpg">JPG</option>
-          <option value="png">PNG</option>
-          <option value="gif">GIF</option>
-        </select>
+                <button type="submit" className="convert-button">⚡ Convertir</button>
+            </form>
+          }
+            {convertedFiles.length > 0 && (
+              <div className="converted-files">
+                <IoCloseSharp onClick={() => window.location.reload()} />
+                <h3>📜 Fichiers convertis :</h3>
+                <ul>
+                  {convertedFiles.map((file, index) => (
+                    <li key={index}>
+                    <button
+                      onClick={() => {
+                        fetch(`http://localhost:5000${file}`)
+                          .then(response => response.blob())
+                          .then(blob => {
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = file.split("/").pop();
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            window.URL.revokeObjectURL(url);
+                          })
+                          .catch(error => console.error("Erreur de téléchargement :", error));
+                      }}
+                    >
+                      📥 Télécharger {file.split("/").pop()}
+                    </button>
+                  </li>
+                  
+                  ))}
+                </ul>
 
-        <button type="submit">Convertir</button>
+                <button onClick={() => window.location.href = "http://localhost:5000/download-zip"}>📦 Télécharger en ZIP</button>
+              </div>
+            )}
         </div>
-      </form>
-
-      {convertedFiles.length > 0 && (
-        <>
-          <h3>Fichiers convertis :</h3>
-          <ul>
-            {convertedFiles.map((file, index) => (
-              <li key={index}>
-                <button onClick={() => handleDownload(`http://localhost:5000${file}`, file.split("/").pop())}>
-                  Télécharger {file.split("/").pop()}
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          <button onClick={handleDownloadZip}>📦 Télécharger en ZIP</button>
-        </>
-      )}
+      
     </div>
   );
 };
