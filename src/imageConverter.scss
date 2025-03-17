@@ -1,0 +1,88 @@
+*{
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+.container-converter{
+    min-height: 100vh;
+    width: 100%;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding-top: 25px;
+    font-size: 25px;
+    color: white;
+    h2{
+        background: rgba(0, 0, 0, 0.8);
+        width: fit-content;
+        padding: 10px;
+    }
+    form{
+        min-height: 90vh;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        div{
+        background: rgba(0, 0, 0, 0.8);
+        min-height: 50vh;
+        width: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        gap: 10px;
+        border-radius: 15px;
+        padding: 15px;
+        }
+    }
+}
+button{
+    background-color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    border: none;
+    outline: none;
+    transition: all ease 0.3s;
+    &:hover{
+        background-color: black;
+        color: white;
+        cursor: pointer;
+        transition: all ease 0.3s;
+    }
+}
+label{
+    transition: all ease-in-out 0.3s;
+    &:hover{
+        cursor: pointer;
+        transition: all ease-in-out 0.3s;
+        color: grey;
+    }
+}
+textarea{
+    max-width: 100%;
+    &:hover{
+        outline: 2px solid red;
+        cursor: pointer;
+    }
+}
+
+@media(max-width: 768px){
+    .container-converter form div{
+        width: 75%;
+    }
+}
+@media(max-width: 515px){
+    .container-converter form div{
+        width: 95%;
+    }
+    .container-converter h2{
+        font-size: 25px;
+    }
+    form div h3 {
+        font-size: 22px;
+    }
+    form div label{
+        font-size: 18px;
+    }
+}
